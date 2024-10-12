@@ -1,0 +1,33 @@
+-- Definir modulos que usaremos - firestore y storage despues AUTH
+
+-- Se almacenara en el storage en donde la base de datos sera de tipo NOSQL
+
+
+DEPENDENCIAS
+
+NO OLVIDAR INSTALAR FIREBASE EN EL Proyecto : npm install firebase
+
+npm install -g firebase-tools
+    -> Checar si tienes firebae CLI para iniciarlo
+
+    npm install -g firebase-tools
+    
+    -> Dar permuisos de instalacion de firebase CLI >> Set-ExecutionPolicy RemoteSigned
+
+Proyecto
+Crear app >>> comando= firebase apps:create
+
+Para usar las credenciales firebase apps:sdkconfig WEB 1:321803993040:web:3ff443ed93b9f75d5bc3d5
+
+te crea algo asi:
+firebase.initializeApp({
+  "projectId": "subirarchivos-5905c",
+  "appId": "1:321803993040:web:3ff443ed93b9f75d5bc3d5",
+  "storageBucket": "subirarchivos-5905c.appspot.com",
+  "locationId": "us-central",
+  "apiKey": "AIzaSyCOM1unPCIVuksm6LNhzfTGxFi308QrQJ0",
+  "authDomain": "subirarchivos-5905c.firebaseapp.com",
+  "messagingSenderId": "321803993040"
+});
+
+pushear cambios firebae deploy --only storage ... actualiza mis reglas para dar permisos 
