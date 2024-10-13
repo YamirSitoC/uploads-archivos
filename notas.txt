@@ -4,6 +4,7 @@
 
 
 DEPENDENCIAS
+npm install react-router-dom
 
 NO OLVIDAR INSTALAR FIREBASE EN EL Proyecto : npm install firebase
 
@@ -31,3 +32,44 @@ firebase.initializeApp({
 });
 
 pushear cambios firebae deploy --only storage ... actualiza mis reglas para dar permisos 
+
+
+error de dependencia: npm install --save-dev @babel/plugin-proposal-private-property-in-object
+
+
+libreria para diseño: npm install @radix-ui/react-select lucide-react
+
+npm install -D tailwindcss@latest postcss@latest autoprefixer@latest
+
+componentes:npx shadcn-ui@latest add button
+npx shadcn-ui@latest add input
+npx shadcn-ui@latest add select
+npx shadcn-ui@latest add card
+npx shadcn-ui@latest add alert
+
+
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+
+
+Error al descargar el archivo:
+Acceso a XMLHttpRequest en 'https://firebasestorage.googleapis.com/v0/b/subirarchivos-5905c.appspot.com/o/Grabaci%C3%B3n%20de%20pantalla%202024-10-04%20194347.mp4?alt =media&token=21fbd1be-da1f-4047-9f8d-e7469a5e1c69' del origen 'http://localhost:3000' ha sido bloqueado por la política CORS: no hay ningún encabezado 'Access-Control-Allow-Origin' presente en el recurso solicitado.
+Aplicación.js:131 
+        
+        
+        OBTENER https://firebasestorage.googleapis.com/v0/b/subirarchivos-5905c.appspot.com/o/Grabaci%C3%B3n%20de%20pantalla%202024-10-04%20194347.mp4?alt=media&token=21fbd1be -da1f-4047-9f8d-e7469a5e1c69 neto::ERR_FAILED 200 (OK)
+
+
+error de CORS: Cross-Origin Resource Sharing
+
+usar un servidor proxy en tu backend para manejar la descarga. Esto implicaría crear un endpoint en mi 
+servidor que obtendría el archivo de Firebase y lo serviría al clienteg
+
+

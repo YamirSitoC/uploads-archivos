@@ -23,9 +23,6 @@ function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const db = getFirestore(app);
 
-  const [showRedirect, setShowRedirect] = useState(true);
-  const [redirectTime, setRedirectTime] = useState(15);
-
 
   /*const migrateOldDocuments = async () => {
     const querySnapshot = await getDocs(collection(db, "archivos"));
@@ -140,29 +137,6 @@ function App() {
     return () => unsubscribe();
   }, [sortBy, sortOrder]);
 
-  
-  useEffect(() => {
-    if (showRedirect) {
-      const timer = setInterval(() => {
-        setRedirectTime((prevTime) => {
-          if (prevTime <= 1) {
-            clearInterval(timer);
-            setShowRedirect(false);
-            return 0;
-          }
-          return prevTime - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [showRedirect]);
-
-  const skipRedirect = () => {
-    setShowRedirect(true);
-  }
-
-
   const handleSort = (field) => {
     if (field === sortBy) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -229,25 +203,6 @@ function App() {
       );
     }
   };
-
-  if (showRedirect){
-    return (
-      <div>
-        <RedirectPage />
-        <div className="fixed bottom-4 right-4 flex flex-col items-end">
-          <p className="text-white bg-indigo-600 px-4 py-2 rounded-full mb-2">
-            Redirigiendo en {redirectTime} segundos...
-          </p>
-          <button
-            onClick={skipRedirect}
-            className="bg-white text-indigo-600 font-bold py-2 px-4 rounded-full hover:bg-indigo-100 transition duration-300"
-          >
-            Saltar espera
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">

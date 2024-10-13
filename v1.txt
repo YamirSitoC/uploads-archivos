@@ -3,9 +3,6 @@ import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'fire
 import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { app } from './firebaseConfig';
 
-import RedirectPage from './RedirectPage';
-
-import './animations.css';
 
 import './index.css';
 import './App.css';
@@ -17,45 +14,20 @@ function App() {
   const [docus, setDocus] = useState([]);
   const [sortBy, setSortBy] = useState('fecha');
   const [sortOrder, setSortOrder] = useState('desc');
-  
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedFile, setSelectedFile] = useState(null);
   const db = getFirestore(app);
-
-  const [showRedirect, setShowRedirect] = useState(true);
-  const [redirectTime, setRedirectTime] = useState(15);
-
-
-  /*const migrateOldDocuments = async () => {
-    const querySnapshot = await getDocs(collection(db, "archivos"));
-    
-    querySnapshot.forEach(async (doc) => {
-      const data = doc.data();
-      if (!data.storagePath && data.URL) {
-        // Extraer el storagePath de la URL
-        const url = new URL(data.URL);
-        const storagePath = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
-        
-        // Actualizar el documento
-        await updateDoc(doc.ref, {
-          storagePath: storagePath
-        });
-      }
-    });
-  };*/
 
   const archivoHandler = async (e) => {
     const archivo = e.target.files[0];
     if (archivo) {
-      setSelectedFile(archivo);
       setArchivoPreview(URL.createObjectURL(archivo));
       const storage = getStorage(app);
       const storageRef = ref(storage, archivo.name);
-  
+
       setIsUploading(true);
       setUploadProgress(0);
-  
+
       try {
         await uploadBytes(storageRef, archivo);
         const enlaceURL = await getDownloadURL(storageRef);
@@ -74,49 +46,29 @@ function App() {
     e.preventDefault();
     const nombreArchivo = e.target.nombre.value;
     const tipoArchivo = e.target.tipo.value;
-  
-    if (!nombreArchivo || !tipoArchivo || !selectedFile) {
-      alert('Por favor, completa todos los campos y selecciona un archivo');
+
+    if (!nombreArchivo || !tipoArchivo || !archivoURL) {
+      alert('Por favor, completa todos los campos');
       return;
     }
-  
+
     try {
-      setIsUploading(true);
-      setUploadProgress(0);
-  
-      const storage = getStorage(app);
-      const storagePath = `archivos/${Date.now()}_${selectedFile.name}`; // Asegura un nombre único
-      const storageRef = ref(storage, storagePath);
-  
-      // Subir el archivo
-      await uploadBytes(storageRef, selectedFile);
-  
-      // Actualizar el progreso
-      setUploadProgress(100);
-  
-      // Obtener la URL de descarga
-      const downloadURL = await getDownloadURL(storageRef);
-  
-      // Guardar la información en Firestore
       await addDoc(collection(db, "archivos"), {
         nombre: nombreArchivo,
-        storagePath: storagePath,
-        URL: downloadURL, // Guardamos tanto la ruta como la URL para compatibilidad
+        URL: archivoURL,
         tipo: tipoArchivo,
         fecha: new Date().toISOString(),
       });
-  
-      setIsUploading(false);
-      setSelectedFile(null);
-      setArchivoPreview(null);
       e.target.reset();
-      alert('Archivo subido con éxito');
+      setArchivoURL("");
+      setArchivoPreview(null);
+      setUploadProgress(0);
     } catch (error) {
       console.error("Error al guardar en Firestore:", error);
-      setIsUploading(false);
-      alert('Error al guardar el archivo: ' + error.message);
+      alert('Error al guardar el archivo');
     }
   };
+
   const deleteFile = async (docId, fileName) => {
     const storage = getStorage(app);
 
@@ -140,29 +92,6 @@ function App() {
     return () => unsubscribe();
   }, [sortBy, sortOrder]);
 
-  
-  useEffect(() => {
-    if (showRedirect) {
-      const timer = setInterval(() => {
-        setRedirectTime((prevTime) => {
-          if (prevTime <= 1) {
-            clearInterval(timer);
-            setShowRedirect(false);
-            return 0;
-          }
-          return prevTime - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [showRedirect]);
-
-  const skipRedirect = () => {
-    setShowRedirect(true);
-  }
-
-
   const handleSort = (field) => {
     if (field === sortBy) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -172,29 +101,21 @@ function App() {
     }
   };
 
-  const handleDownload = async (doc) => {
+  const handleDownload = async (url, fileName) => {
     try {
-      const storage = getStorage(app);
-      let downloadURL;
-  
-      if (doc.storagePath) {
-        // Para documentos nuevos con storagePath
-        const cleanPath = doc.storagePath.startsWith('/') ? doc.storagePath.slice(1) : doc.storagePath;
-        const fileRef = ref(storage, cleanPath);
-        downloadURL = await getDownloadURL(fileRef);
-      } else if (doc.URL) {
-        // Para documentos antiguos con URL directa
-        downloadURL = doc.URL;
-      } else {
-        throw new Error('No se encontró ruta de almacenamiento ni URL para el archivo');
-      }
-  
-      // Abrir la URL en una nueva pestaña
-      window.open(downloadURL, '_blank');
-  
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error("Error al descargar el archivo:", error);
-      alert(`Error al descargar el archivo: ${error.message}`);
+      alert('Error al descargar el archivo');
     }
   };
 
@@ -229,25 +150,6 @@ function App() {
       );
     }
   };
-
-  if (showRedirect){
-    return (
-      <div>
-        <RedirectPage />
-        <div className="fixed bottom-4 right-4 flex flex-col items-end">
-          <p className="text-white bg-indigo-600 px-4 py-2 rounded-full mb-2">
-            Redirigiendo en {redirectTime} segundos...
-          </p>
-          <button
-            onClick={skipRedirect}
-            className="bg-white text-indigo-600 font-bold py-2 px-4 rounded-full hover:bg-indigo-100 transition duration-300"
-          >
-            Saltar espera
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -353,8 +255,8 @@ function App() {
                   Eliminar
                 </button>
                 <button 
-                    onClick={() => handleDownload(doc)}
-                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  onClick={() => handleDownload(doc.URL, doc.nombre)}
+                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                 >
                   Descargar
                 </button>
