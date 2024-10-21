@@ -2,6 +2,7 @@
 
 -- Se almacenara en el storage en donde la base de datos sera de tipo NOSQL
 
+error de CORS: Cross-Origin Resource Sharing
 
 DEPENDENCIAS
 npm install react-router-dom
@@ -67,7 +68,7 @@ Aplicación.js:131
         OBTENER https://firebasestorage.googleapis.com/v0/b/subirarchivos-5905c.appspot.com/o/Grabaci%C3%B3n%20de%20pantalla%202024-10-04%20194347.mp4?alt=media&token=21fbd1be -da1f-4047-9f8d-e7469a5e1c69 neto::ERR_FAILED 200 (OK)
 
 
-error de CORS: Cross-Origin Resource Sharing
+
 
 usar un servidor proxy en tu backend para manejar la descarga. Esto implicaría crear un endpoint en mi 
 servidor que obtendría el archivo de Firebase y lo serviría al clienteg

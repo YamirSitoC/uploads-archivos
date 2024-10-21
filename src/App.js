@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, where, updateDoc } from 'firebase/firestore';
+
 import { app } from './firebaseConfig';
 
 import RedirectPage from './RedirectPage';
@@ -9,6 +11,8 @@ import './animations.css';
 
 import './index.css';
 import './App.css';
+
+import FolderManager from './FolderManager';
 
 
 function App() {
@@ -25,6 +29,10 @@ function App() {
 
   const [showRedirect, setShowRedirect] = useState(true);
   const [redirectTime, setRedirectTime] = useState(15);
+
+
+  const [currentFolder, setCurrentFolder] = useState(null);
+  const [uploadToFolderId, setUploadToFolderId] = useState(null);
 
 
   /*const migrateOldDocuments = async () => {
@@ -85,30 +93,26 @@ function App() {
       setUploadProgress(0);
   
       const storage = getStorage(app);
-      const storagePath = `archivos/${Date.now()}_${selectedFile.name}`; // Asegura un nombre único
+      const storagePath = `archivos/${Date.now()}_${selectedFile.name}`;
       const storageRef = ref(storage, storagePath);
   
-      // Subir el archivo
       await uploadBytes(storageRef, selectedFile);
-  
-      // Actualizar el progreso
       setUploadProgress(100);
-  
-      // Obtener la URL de descarga
       const downloadURL = await getDownloadURL(storageRef);
   
-      // Guardar la información en Firestore
       await addDoc(collection(db, "archivos"), {
         nombre: nombreArchivo,
         storagePath: storagePath,
-        URL: downloadURL, // Guardamos tanto la ruta como la URL para compatibilidad
+        URL: downloadURL,
         tipo: tipoArchivo,
         fecha: new Date().toISOString(),
+        folderId: uploadToFolderId || currentFolder // Usa el ID de carpeta específico o la carpeta actual
       });
   
       setIsUploading(false);
       setSelectedFile(null);
       setArchivoPreview(null);
+      setUploadToFolderId(null);
       e.target.reset();
       alert('Archivo subido con éxito');
     } catch (error) {
@@ -117,6 +121,20 @@ function App() {
       alert('Error al guardar el archivo: ' + error.message);
     }
   };
+
+  const handleFileMove = async (fileId, newFolderId) => {
+    try {
+      await updateDoc(doc(db, "archivos", fileId), {
+        folderId: newFolderId
+      });
+    } catch (error) {
+      console.error("Error al mover el archivo:", error);
+      alert('Error al mover el archivo');
+    }
+  };
+  
+
+
   const deleteFile = async (docId, fileName) => {
     const storage = getStorage(app);
 
@@ -158,6 +176,23 @@ function App() {
     }
   }, [showRedirect]);
 
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "archivos"),
+      where("folderId", "==", currentFolder),
+      orderBy(sortBy, sortOrder)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const updatedDocs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDocus(updatedDocs);
+    });
+
+    return () => unsubscribe();
+  }, [sortBy, sortOrder, currentFolder]);
+
+
   const skipRedirect = () => {
     setShowRedirect(true);
   }
@@ -178,19 +213,32 @@ function App() {
       let downloadURL;
   
       if (doc.storagePath) {
-        // Para documentos nuevos con storagePath
         const cleanPath = doc.storagePath.startsWith('/') ? doc.storagePath.slice(1) : doc.storagePath;
         const fileRef = ref(storage, cleanPath);
         downloadURL = await getDownloadURL(fileRef);
       } else if (doc.URL) {
-        // Para documentos antiguos con URL directa
         downloadURL = doc.URL;
       } else {
         throw new Error('No se encontró ruta de almacenamiento ni URL para el archivo');
       }
   
-      // Abrir la URL en una nueva pestaña
-      window.open(downloadURL, '_blank');
+      // Usar fetch para obtener el archivo como un blob
+      const response = await fetch(downloadURL);
+      const blob = await response.blob();
+  
+      // Crear un objeto URL para el blob
+      const blobUrl = window.URL.createObjectURL(blob);
+  
+      // Crear un enlace temporal y forzar la descarga
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = doc.nombre || 'archivo_descargado';
+      document.body.appendChild(link);
+      link.click();
+  
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
   
     } catch (error) {
       console.error("Error al descargar el archivo:", error);
@@ -256,6 +304,15 @@ function App() {
           Computo en la nube
         </h1>
         
+        <FolderManager 
+          files={docus}
+          onFileMove={handleFileMove}
+          onFolderSelect={setCurrentFolder}
+          currentFolder={currentFolder}
+          onUploadToFolder={(folderId) => setUploadToFolderId(folderId)}
+        />
+
+
         <div className="bg-white shadow-2xl rounded-2xl px-8 pt-6 pb-8 mb-12 transition-all duration-300 hover:shadow-3xl">
           <h2 className="text-3xl font-bold text-indigo-800 mb-6">Subir Nuevo Archivo</h2>
           <form onSubmit={submitHandler} className="space-y-6">
